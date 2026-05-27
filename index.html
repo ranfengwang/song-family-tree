@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<title>宋氏家族谱</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "SimSun", sans-serif;
+    background: #f5f0e8;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    touch-action: manipulation;
+}
+.app-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.header {
+    text-align: center;
+    padding: 10px 15px;
+    background: linear-gradient(135deg, #8B0000 0%, #a52a2a 100%);
+    color: white;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 100;
+}
+.title {
+    font-size: 20px;
+    font-weight: bold;
+    letter-spacing: 6px;
+}
+.subtitle {
+    font-size: 11px;
+    opacity: 0.8;
+    margin-top: 2px;
+}
+.toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: #fff;
+    border-bottom: 1px solid #e0d5c5;
+    flex-shrink: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+    z-index: 100;
+}
+.toolbar::-webkit-scrollbar { display: none; }
+.btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    -webkit-appearance: none;
+}
+.btn:active { transform: scale(0.95); }
+.btn-save { background: #2e7d32; color: white; }
+.btn-edit { background: #00838f; color: white; }
+.btn-add-child { background: #1565c0; color: white; }
+.btn-add-spouse { background: #6a1b9a; color: white; }
+.btn-delete { background: #c62828; color: white; }
+.btn-export { background: #e65100; color: white; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.canvas-wrapper {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: #faf8f3;
+    touch-action: none;
+}
+#familyCanvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+.zoom-controls {
+    position: fixed;
+    bottom: 15px;
+    right: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 1000;
+}
+.zoom-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: #8B0000;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: all 0.2s;
+    -webkit-appearance: none;
+}
+.zoom-btn:active { transform: scale(0.9); background: #a52a2a; }
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: flex-end;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+    background: white;
+    padding: 20px;
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+.modal h3 {
+    color: #8B0000;
+    margin-bottom: 15px;
+    font-size: 17px;
+    text-align: center;
+}
+.modal-row {
+    margin-bottom: 12px;
+}
+.modal-row label {
+    display: block;
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+.modal-row input, .modal-row select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 15px;
+    -webkit-appearance: none;
+    background: #fafafa;
+}
+.modal-row input:focus, .modal-row select:focus {
+    outline: none;
+    border-color: #8B0000;
+    background: #fff;
+}
+.modal-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+.modal-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    -webkit-appearance: none;
+}
+.modal-btn-confirm { background: #8B0000; color: white; }
+.modal-btn-cancel { background: #f0f0f0; color: #666; }
+.export-options {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+.export-option {
+    flex: 1;
+    padding: 15px 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.export-option.selected {
+    border-color: #8B0000;
+    background: #fff5e6;
+}
+.export-option .icon { font-size: 24px; margin-bottom: 4px; }
+.export-option .label { font-size: 13px; font-weight: bold; color: #333; }
+.export-option .desc { font-size: 10px; color: #888; margin-top: 2px; }
+.toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.75);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 20px;
+    font-size: 14px;
+    z-index: 2000;
+    display: none;
+    pointer-events: none;
+}
+.toast.show { display: block; animation: fadeInOut 2s ease; }
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { opacity: 0; }
+}
+.guide-tip {
+    position: fixed;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(139, 0, 0, 0.85);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 16px;
+    font-size: 12px;
+    z-index: 999;
+    white-space: nowrap;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+</style>
+</head>
+<body>
+<div class="app-container">
+    <div class="header">
+        <div class="title">宋氏家族谱</div>
+        <div class="subtitle">点击节点选中 · 双指缩放 · 单指拖拽</div>
+    </div>
+
+    <div class="toolbar">
+        <button class="btn btn-edit" onclick="showEditModal()" id="btnEdit" disabled>✏️编辑</button>
+        <button class="btn btn-add-child" onclick="showAddChildModal()" id="btnAddChild" disabled>👶加子女</button>
+        <button class="btn btn-add-spouse" onclick="showAddSpouseModal()" id="btnAddSpouse" disabled>💑加配偶</button>
+        <button class="btn btn-delete" onclick="deleteNode()" id="btnDelete" disabled>🗑️删除</button>
+        <button class="btn btn-export" onclick="showExportModal()">📷导出</button>
+        <button class="btn btn-save" onclick="saveTree()">💾保存</button>
+    </div>
+
+    <div class="canvas-wrapper" id="canvasWrapper">
+        <svg id="familyCanvas" width="100" height="100"></svg>
+    </div>
+
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomIn()">+</button>
+        <button class="zoom-btn" onclick="zoomOut()">−</button>
+        <button class="zoom-btn" onclick="resetZoom()">⟲</button>
+    </div>
+
+    <div class="guide-tip" id="guideTip">👆 点击人名查看详情</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 编辑节点 -->
+<div class="modal-overlay" id="modalEdit">
+    <div class="modal">
+        <h3>✏️ 编辑节点</h3>
+        <div class="modal-row">
+            <label>姓名</label>
+            <input type="text" id="editName" placeholder="请输入姓名">
+        </div>
+        <div class="modal-row">
+            <label>备注（如排行）</label>
+            <input type="text" id="editNote" placeholder="如：长子、次子、大姐">
+        </div>
+        <div class="modal-row">
+            <label>性别</label>
+            <select id="editGender">
+                <option value="male">男</option>
+                <option value="female">女</option>
+            </select>
+        </div>
+        <div class="modal-row">
+            <label>配偶</label>
+            <input type="text" id="editSpouse" placeholder="如：张氏、李氏">
+        </div>
+        <div class="modal-btns">
+            <button class="modal-btn modal-btn-cancel" onclick="closeModal('modalEdit')">取消</button>
+            <button class="modal-btn modal-btn-confirm" onclick="confirmEdit()">确认</button>
+        </div>
+    </div>
+</div>
+
+<!-- 添加子女 -->
+<div class="modal-overlay" id="modalAddChild">
+    <div class="modal">
+        <h3>👶 添加子女</h3>
+        <div class="modal-row">
+            <label>子女姓名</label>
+            <input type="text" id="childName" placeholder="请输入子女姓名">
+        </div>
+        <div class="modal-row">
+            <label>性别</label>
+            <select id="childGender">
+                <option value="male">男</option>
+                <option value="female">女</option>
+            </select>
+        </div>
+        <div class="modal-row">
+            <label>备注</label>
+            <input type="text" id="childNote" placeholder="如：长子、次子">
+        </div>
+        <div class="modal-btns">
+            <button class="modal-btn modal-btn-cancel" onclick="closeModal('modalAddChild')">取消</button>
+            <button class="modal-btn modal-btn-confirm" onclick="confirmAddChild()">确认</button>
+        </div>
+    </div>
+</div>
+
+<!-- 添加配偶 -->
+<div class="modal-overlay" id="modalAddSpouse">
+    <div class="modal">
+        <h3>💑 添加配偶</h3>
+        <div class="modal-row">
+            <label>配偶姓名或姓氏</label>
+            <input type="text" id="spouseName" placeholder="如：张氏、李氏">
+        </div>
+        <div class="modal-btns">
+            <button class="modal-btn modal-btn-cancel" onclick="closeModal('modalAddSpouse')">取消</button>
+            <button class="modal-btn modal-btn-confirm" onclick="confirmAddSpouse()">确认</button>
+        </div>
+    </div>
+</div>
+
+<!-- 导出图片 -->
+<div class="modal-overlay" id="modalExport">
+    <div class="modal">
+        <h3>📷 导出高清图片</h3>
+        <div class="export-options">
+            <div class="export-option selected" onclick="selectExportFormat('png')" id="optPng">
+                <div class="icon">🖼️</div>
+                <div class="label">PNG</div>
+                <div class="desc">高清无损</div>
+            </div>
+            <div class="export-option" onclick="selectExportFormat('jpg')" id="optJpg">
+                <div class="icon">📸</div>
+                <div class="label">JPG</div>
+                <div class="desc">文件较小</div>
+            </div>
+        </div>
+        <div class="modal-row" style="margin-top:15px;">
+            <label>清晰度</label>
+            <select id="exportScale">
+                <option value="1">1x 标准</option>
+                <option value="2" selected>2x 高清</option>
+                <option value="3">3x 超清</option>
+                <option value="4">4x 印刷级</option>
+            </select>
+        </div>
+        <div class="modal-btns">
+            <button class="modal-btn modal-btn-cancel" onclick="closeModal('modalExport')">取消</button>
+            <button class="modal-btn modal-btn-confirm" onclick="confirmExport()">📥 导出</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==================== 家族数据（高清导出版本）====================
+var familyData = {
+    id: "root",
+    name: "宋（二爷）",
+    spouse: "蔡氏、胡氏",
+    gender: "male",
+    generation: 0,
+    children: [
+        {
+            id: "g1-1",
+            name: "宋鸿恩",
+            note: "天哥",
+            spouse: "李氏",
+            gender: "male",
+            generation: 1,
+            children: [
+                {
+                    id: "g2-1",
+                    name: "宋锡三",
+                    spouse: "李氏",
+                    gender: "male",
+                    generation: 2,
+                    children: [
+                        {
+                            id: "g3-1",
+                            name: "宋其昌",
+                            note: "长子",
+                            spouse: "华氏",
+                            gender: "male",
+                            generation: 3,
+                            children: [
+                                {
+                                    id: "g4-1",
+                                    name: "宋祥云",
+                                    spouse: "牛氏",
+                                    gender: "male",
+                                    generation: 4,
+                                    children: [
+                                        {
+                                            id: "g5-1",
+                                            name: "宋长行",
+                                            note: "长子",
+                                            spouse: "张氏",
+                                            gender: "male",
+                                            generation: 5,
+                                            children: [
+                                                {
+                                                    id: "g6-1",
+                                                    name: "宋健",
+                                                    note: "长子",
+                                                    spouse: "郭氏",
+                                                    gender: "male",
+                                                    generation: 6,
+                                                    children: [
+                                                        {
+                                                            id: "g7-1",
+                                                            name: "宋伟伦",
+                                                            spouse: "金氏",
+                                                            gender: "male",
+                                                            generation: 7,
+                                                            children: [
+                                                                {
+                                                                    id: "g8-1",
+                                                                    name: "宋兆耀",
+                                                                    spouse: "华氏",
+                                                                    gender: "male",
+                                                                    generation: 8,
+                                                                    children: []
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    id: "g6-2",
+                                                    name: "宋伟",
+                                                    note: "次子",
+                                                    spouse: "张氏",
+                                                    gender: "male",
+                                                    generation: 6,
+                                                    children: [
+                                                        {
+                                                            id: "g7-2",
+                                                            name: "张刚",
+                                                            note: "长子",
+                                                            spouse: "张氏",
+                                                            gender: "male",
+                                                            generation: 7,
+                                                            children: []
+                                                        },
+                                                        {
+                                                            id: "g7-3",
+                                                            name: "张宁",
+                                                            note: "次子",
+                                                            spouse: "曾氏",
+                                                            gender: "male",
+                                                            generation: 7,
+                                                            children: []
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    id: "g4-2",
+                                    name: "宋其昌",
+                                    note: "次子",
+                                    spouse: "李氏",
+                                    gender: "male",
+                                    generation: 4,
+                                    children: []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            id: "g1-2",
+            name: "宋柏年",
+            note: "三哥",
+            spouse: "胡氏",
+            gender: "male",
+            generation: 1,
+            children: [
+                {
+                    id: "g2-2",
+                    name: "宋祥麟",
+                    note: "三哥",
+                    spouse: "庄氏",
+                    gender: "male",
+                    generation: 2,
+                    children: [
+                        {
+                            id: "g3-2",
+                            name: "宋增行",
+                            note: "三哥",
+                            spouse: "乔氏",
+                            gender: "male",
+                            generation: 3,
+                            children: []
+                        }
+                    ]
+                },
+                {
+                    id: "g2-3",
+                    name: "宋祥征",
+                    note: "五姐",
+                    spouse: "杨兴维",
+                    gender: "female",
+                    generation: 2,
+                    children: [
+                        {
+                            id: "g3-3",
+                            name: "杨锦冬",
+                            spouse: "杨氏",
+                            gender: "male",
+                            generation: 3,
+                            children: [
+                                {
+                                    id: "g4-3",
+                                    name: "宋祥熙",
+                                    spouse: "杨氏",
+                                    gender: "male",
+                                    generation: 4,
+                                    children: [
+                                        {
+                                            id: "g5-2",
+                                            name: "宋八哥",
+                                            spouse: "齐氏",
+                                            gender: "male",
+                                            generation: 5,
+                                            children: [
+                                                {
+                                                    id: "g6-3",
+                                                    name: "宋子行",
+                                                    spouse: "李氏",
+                                                    gender: "male",
+                                                    generation: 6,
+                                                    children: [
+                                                        {
+                                                            id: "g7-4",
+                                                            name: "宋桐瑞",
+                                                            gender: "male",
+                                                            generation: 7,
+                                                            children: [
+                                                                {
+                                                                    id: "g8-2",
+                                                                    name: "宋子行二",
+                                                                    gender: "male",
+                                                                    generation: 8,
+                                                                    children: []
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "g2-4",
+                    name: "宋祥裕",
+                    note: "六姐",
+                    spouse: "刘振民",
+                    gender: "female",
+                    generation: 2,
+                    children: []
+                },
+                {
+                    id: "g2-5",
+                    name: "宋祥芹",
+                    note: "七姐",
+                    spouse: "项寿鹤",
+                    gender: "female",
+                    generation: 2,
+                    children: []
+                },
+                {
+                    id: "g2-6",
+                    name: "宋祥瑜",
+                    note: "八姐",
+                    spouse: "邢士信",
+                    gender: "female",
+                    generation: 2,
+                    children: []
+                },
+                {
+                    id: "g2-7",
+                    name: "宋祥琳",
+                    spouse: "崔大琳",
+                    gender: "female",
+                    generation: 2,
+                    children: []
+                },
+                {
+                    id: "g2-8",
+                    name: "宋祥雯",
+                    note: "九姐",
+                    spouse: "王聘南",
+                    gender: "female",
+                    generation: 2,
+                    children: []
+                }
+            ]
+        }
+    ]
+};
+
+var selectedNodeId = null;
+var nodeIdCounter = 100;
+var svg = document.getElementById('familyCanvas');
+var canvasWrapper = document.getElementById('canvasWrapper');
+
+var NODE_WIDTH = 120;
+var NODE_HEIGHT = 46;
+var VERTICAL_GAP = 70;
+var HORIZONTAL_GAP = 12;
+
+var scale = 1;
+var translateX = 0;
+var translateY = 0;
+var isDragging = false;
+var lastTouchX = 0;
+var lastTouchY = 0;
+var lastTouchDist = 0;
+
+var exportFormat = 'png';
+
+// ==================== 布局计算 ====================
+function calculateLayout(node) {
+    if (!node.children || node.children.length === 0) {
+        node.width = NODE_WIDTH + HORIZONTAL_GAP;
+        return;
+    }
+    var totalWidth = 0;
+    for (var i = 0; i < node.children.length; i++) {
+        calculateLayout(node.children[i]);
+        totalWidth += node.children[i].width;
+    }
+    node.width = Math.max(NODE_WIDTH + HORIZONTAL_GAP, totalWidth);
+}
+
+function assignPositions(node, startX, y) {
+    node.x = startX + node.width / 2;
+    node.y = y;
+    if (node.children && node.children.length > 0) {
+        var childrenTotalWidth = 0;
+        for (var i = 0; i < node.children.length; i++) {
+            childrenTotalWidth += node.children[i].width;
+        }
+        var offset = (node.width - childrenTotalWidth) / 2;
+        var currentX = startX + offset;
+        for (var i = 0; i < node.children.length; i++) {
+            assignPositions(node.children[i], currentX, y + VERTICAL_GAP);
+            currentX += node.children[i].width;
+        }
+    }
+}
+
+function getMaxGeneration(node) {
+    var max = node.generation;
+    if (node.children) {
+        for (var i = 0; i < node.children.length; i++) {
+            max = Math.max(max, getMaxGeneration(node.children[i]));
+        }
+    }
+    return max;
+}
+
+function createSVGElement(tag, attrs) {
+    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var key in attrs) {
+        el.setAttribute(key, attrs[key]);
+    }
+    return el;
+}
+
+// ==================== 渲染 ====================
+function render() {
+    svg.innerHTML = '';
+    calculateLayout(familyData);
+
+    var maxGen = getMaxGeneration(familyData);
+    var canvasWidth = Math.max(familyData.width + 40, 320);
+    var canvasHeight = maxGen * VERTICAL_GAP + 100;
+
+    svg.setAttribute('width', canvasWidth);
+    svg.setAttribute('height', canvasHeight);
+
+    var startX = (canvasWidth - familyData.width) / 2;
+    assignPositions(familyData, startX, 40);
+
+    drawConnections(familyData);
+    drawNodes(familyData);
+    updateTransform();
+}
+
+function drawConnections(node) {
+    if (!node.children || node.children.length === 0) return;
+
+    var parentX = node.x;
+    var parentY = node.y + NODE_HEIGHT / 2;
+
+    if (node.children.length > 1) {
+        var firstChild = node.children[0];
+        var lastChild = node.children[node.children.length - 1];
+        var midY = parentY + VERTICAL_GAP / 2;
+
+        svg.appendChild(createSVGElement('line', {
+            x1: parentX, y1: parentY, x2: parentX, y2: midY,
+            stroke: '#8B0000', 'stroke-width': 1.5, 'stroke-linecap': 'round'
+        }));
+        svg.appendChild(createSVGElement('line', {
+            x1: firstChild.x, y1: midY, x2: lastChild.x, y2: midY,
+            stroke: '#8B0000', 'stroke-width': 1.5, 'stroke-linecap': 'round'
+        }));
+        for (var i = 0; i < node.children.length; i++) {
+            svg.appendChild(createSVGElement('line', {
+                x1: node.children[i].x, y1: midY,
+                x2: node.children[i].x, y2: node.children[i].y - NODE_HEIGHT / 2,
+                stroke: '#8B0000', 'stroke-width': 1.5, 'stroke-linecap': 'round'
+            }));
+        }
+    } else {
+        var child = node.children[0];
+        svg.appendChild(createSVGElement('line', {
+            x1: parentX, y1: parentY, x2: child.x, y2: child.y - NODE_HEIGHT / 2,
+            stroke: '#8B0000', 'stroke-width': 1.5, 'stroke-linecap': 'round'
+        }));
+    }
+    for (var i = 0; i < node.children.length; i++) {
+        drawConnections(node.children[i]);
+    }
+}
+
+function drawNodes(node) {
+    var isSelected = selectedNodeId === node.id;
+
+    var g = createSVGElement('g', { cursor: 'pointer' });
+
+    g.addEventListener('click', function(e) {
+        e.stopPropagation();
+        selectNode(node.id);
+    });
+
+    g.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        selectNode(node.id);
+        showEditModal();
+    });
+
+    var rect = createSVGElement('rect', {
+        x: node.x - NODE_WIDTH / 2,
+        y: node.y - NODE_HEIGHT / 2,
+        width: NODE_WIDTH,
+        height: NODE_HEIGHT,
+        rx: 5, ry: 5,
+        fill: isSelected ? '#fff5e6' : '#fffef8',
+        stroke: isSelected ? '#ff6f00' : '#8B0000',
+        'stroke-width': isSelected ? 2.5 : 1.2
+    });
+    g.appendChild(rect);
+
+    var displayName = node.name;
+    if (node.note) displayName += '（' + node.note + '）';
+
+    var nameText = createSVGElement('text', {
+        x: node.x, y: node.y - 2,
+        'text-anchor': 'middle',
+        'font-size': 12,
+        'font-weight': 'bold',
+        fill: '#333',
+        'font-family': 'PingFang SC, SimSun, serif'
+    });
+    nameText.textContent = displayName;
+    g.appendChild(nameText);
+
+    if (node.spouse) {
+        var spouseText = createSVGElement('text', {
+            x: node.x, y: node.y + 14,
+            'text-anchor': 'middle',
+            'font-size': 9,
+            fill: '#8B0000',
+            'font-family': 'PingFang SC, SimSun, serif'
+        });
+        spouseText.textContent = (node.gender === 'female' ? '夫：' : '妻：') + node.spouse;
+        g.appendChild(spouseText);
+    }
+
+    svg.appendChild(g);
+
+    if (node.children) {
+        for (var i = 0; i < node.children.length; i++) {
+            drawNodes(node.children[i]);
+        }
+    }
+}
+
+// ==================== 缩放和拖拽 ====================
+function updateTransform() {
+    svg.style.transform = 'translate(calc(-50% + ' + translateX + 'px), calc(-50% + ' + translateY + 'px)) scale(' + scale + ')';
+}
+
+function zoomIn() {
+    scale = Math.min(scale * 1.3, 3);
+    updateTransform();
+}
+
+function zoomOut() {
+    scale = Math.max(scale / 1.3, 0.4);
+    updateTransform();
+}
+
+function resetZoom() {
+    scale = 1;
+    translateX = 0;
+    translateY = 0;
+    updateTransform();
+}
+
+// 触摸事件
+svg.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 2) {
+        var dx = e.touches[0].clientX - e.touches[1].clientX;
+        var dy = e.touches[0].clientY - e.touches[1].clientY;
+        lastTouchDist = Math.sqrt(dx * dx + dy * dy);
+    } else if (e.touches.length === 1) {
+        isDragging = true;
+        lastTouchX = e.touches[0].clientX;
+        lastTouchY = e.touches[0].clientY;
+    }
+}, { passive: true });
+
+svg.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    if (e.touches.length === 2 && lastTouchDist > 0) {
+        var dx = e.touches[0].clientX - e.touches[1].clientX;
+        var dy = e.touches[0].clientY - e.touches[1].clientY;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        var newScale = scale * (dist / lastTouchDist);
+        scale = Math.max(0.4, Math.min(3, newScale));
+        lastTouchDist = dist;
+        updateTransform();
+    } else if (e.touches.length === 1 && isDragging) {
+        var dx = e.touches[0].clientX - lastTouchX;
+        var dy = e.touches[0].clientY - lastTouchY;
+        translateX += dx;
+        translateY += dy;
+        lastTouchX = e.touches[0].clientX;
+        lastTouchY = e.touches[0].clientY;
+        updateTransform();
+    }
+}, { passive: false });
+
+svg.addEventListener('touchend', function() {
+    isDragging = false;
+    lastTouchDist = 0;
+});
+
+// ==================== 节点查找 ====================
+function findNode(node, id) {
+    if (node.id === id) return node;
+    if (node.children) {
+        for (var i = 0; i < node.children.length; i++) {
+            var found = findNode(node.children[i], id);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
+function findParent(node, childId) {
+    if (node.children) {
+        for (var i = 0; i < node.children.length; i++) {
+            if (node.children[i].id === childId) return node;
+            var found = findParent(node.children[i], childId);
+            if (found) return found;
+        }
+    }
+    return null;
+}
+
+// ==================== 选择节点 ====================
+function selectNode(id) {
+    selectedNodeId = id;
+    document.getElementById('btnEdit').disabled = false;
+    document.getElementById('btnAddChild').disabled = false;
+    document.getElementById('btnAddSpouse').disabled = false;
+    document.getElementById('btnDelete').disabled = (id === 'root');
+    document.getElementById('guideTip').style.display = 'none';
+    render();
+}
+
+svg.addEventListener('click', function() {
+    selectedNodeId = null;
+    document.getElementById('btnEdit').disabled = true;
+    document.getElementById('btnAddChild').disabled = true;
+    document.getElementById('btnAddSpouse').disabled = true;
+    document.getElementById('btnDelete').disabled = true;
+    render();
+});
+
+// ==================== Toast提示 ====================
+function showToast(msg) {
+    var toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function() {
+        toast.classList.remove('show');
+    }, 2000);
+}
+
+// ==================== 编辑节点 ====================
+function showEditModal() {
+    if (!selectedNodeId) return;
+    var node = findNode(familyData, selectedNodeId);
+    if (!node) return;
+
+    document.getElementById('editName').value = node.name || '';
+    document.getElementById('editNote').value = node.note || '';
+    document.getElementById('editGender').value = node.gender || 'male';
+    document.getElementById('editSpouse').value = node.spouse || '';
+
+    document.getElementById('modalEdit').classList.add('active');
+}
+
+function confirmEdit() {
+    var node = findNode(familyData, selectedNodeId);
+    if (!node) return;
+
+    var name = document.getElementById('editName').value.trim();
+    var note = document.getElementById('editNote').value.trim();
+    var gender = document.getElementById('editGender').value;
+    var spouse = document.getElementById('editSpouse').value.trim();
+
+    if (!name) { showToast('姓名不能为空'); return; }
+
+    node.name = name;
+    node.gender = gender;
+    if (note) node.note = note; else delete node.note;
+    if (spouse) node.spouse = spouse; else delete node.spouse;
+
+    closeModal('modalEdit');
+    render();
+    autoSave();
+    showToast('修改成功');
+}
+
+// ==================== 添加子女 ====================
+function showAddChildModal() {
+    if (!selectedNodeId) return;
+    document.getElementById('childName').value = '';
+    document.getElementById('childNote').value = '';
+    document.getElementById('modalAddChild').classList.add('active');
+}
+
+function confirmAddChild() {
+    var name = document.getElementById('childName').value.trim();
+    var gender = document.getElementById('childGender').value;
+    var note = document.getElementById('childNote').value.trim();
+
+    if (!name) { showToast('请输入子女姓名'); return; }
+
+    var parent = findNode(familyData, selectedNodeId);
+    if (!parent) return;
+    if (!parent.children) parent.children = [];
+
+    var newChild = {
+        id: 'new-' + (nodeIdCounter++),
+        name: name,
+        gender: gender,
+        generation: parent.generation + 1,
+        children: []
+    };
+    if (note) newChild.note = note;
+
+    parent.children.push(newChild);
+    closeModal('modalAddChild');
+    render();
+    autoSave();
+    selectNode(newChild.id);
+    showToast('添加成功');
+}
+
+// ==================== 添加配偶 ====================
+function showAddSpouseModal() {
+    if (!selectedNodeId) return;
+    var node = findNode(familyData, selectedNodeId);
+    document.getElementById('spouseName').value = node.spouse || '';
+    document.getElementById('modalAddSpouse').classList.add('active');
+}
+
+function confirmAddSpouse() {
+    var name = document.getElementById('spouseName').value.trim();
+    var node = findNode(familyData, selectedNodeId);
+    if (!node) return;
+    if (name) node.spouse = name; else delete node.spouse;
+    closeModal('modalAddSpouse');
+    render();
+    autoSave();
+    showToast('修改成功');
+}
+
+// ==================== 删除节点 ====================
+function deleteNode() {
+    if (!selectedNodeId || selectedNodeId === 'root') return;
+    if (!confirm('确定删除此成员及其后代？')) return;
+
+    var parent = findParent(familyData, selectedNodeId);
+    if (parent && parent.children) {
+        var newChildren = [];
+        for (var i = 0; i < parent.children.length; i++) {
+            if (parent.children[i].id !== selectedNodeId) {
+                newChildren.push(parent.children[i]);
+            }
+        }
+        parent.children = newChildren;
+    }
+
+    selectedNodeId = null;
+    document.getElementById('btnEdit').disabled = true;
+    document.getElementById('btnAddChild').disabled = true;
+    document.getElementById('btnAddSpouse').disabled = true;
+    document.getElementById('btnDelete').disabled = true;
+
+    render();
+    autoSave();
+    showToast('删除成功');
+}
+
+// ==================== 导出图片 ====================
+function showExportModal() {
+    document.getElementById('modalExport').classList.add('active');
+}
+
+function selectExportFormat(fmt) {
+    exportFormat = fmt;
+    document.getElementById('optPng').classList.remove('selected');
+    document.getElementById('optJpg').classList.remove('selected');
+    document.getElementById('opt' + (fmt === 'png' ? 'Png' : 'Jpg')).classList.add('selected');
+}
+
+function confirmExport() {
+    var scaleVal = parseInt(document.getElementById('exportScale').value);
+    exportToImage(scaleVal);
+    closeModal('modalExport');
+}
+
+function exportToImage(exportScale) {
+    var svgData = new XMLSerializer().serializeToString(svg);
+    var svgWidth = parseInt(svg.getAttribute('width'));
+    var svgHeight = parseInt(svg.getAttribute('height'));
+
+    var canvas = document.createElement('canvas');
+    canvas.width = svgWidth * exportScale;
+    canvas.height = (svgHeight + 90) * exportScale;
+    var ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#8B0000';
+    ctx.font = 'bold ' + (28 * exportScale) + 'px PingFang SC, SimSun, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('宋氏家族谱', canvas.width / 2, 40 * exportScale);
+
+    ctx.fillStyle = '#666666';
+    ctx.font = (10 * exportScale) + 'px PingFang SC, SimSun, serif';
+    ctx.fillText('交互式电子家谱', canvas.width / 2, 60 * exportScale);
+
+    var img = new Image();
+    var svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    var url = URL.createObjectURL(svgBlob);
+
+    img.onload = function() {
+        ctx.drawImage(img, 0, 70 * exportScale, canvas.width, svgHeight * exportScale);
+
+        var mimeType = exportFormat === 'png' ? 'image/png' : 'image/jpeg';
+        var quality = exportFormat === 'png' ? 1 : 0.95;
+        var dataUrl = canvas.toDataURL(mimeType, quality);
+
+        var a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = '宋氏家族谱_' + exportScale + 'x.' + exportFormat;
+        a.click();
+
+        URL.revokeObjectURL(url);
+        showToast('图片已导出');
+    };
+
+    img.src = url;
+}
+
+// ==================== 模态框 ====================
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) overlay.classList.remove('active');
+    });
+});
+
+// ==================== 保存/加载 ====================
+function saveTree() {
+    var dataStr = JSON.stringify(familyData, null, 2);
+    var jsonBlob = new Blob([dataStr], { type: 'application/json' });
+    var jsonUrl = URL.createObjectURL(jsonBlob);
+    var jsonA = document.createElement('a');
+    jsonA.href = jsonUrl;
+    jsonA.download = '宋氏家族谱数据.json';
+    jsonA.click();
+    URL.revokeObjectURL(jsonUrl);
+    showToast('数据已保存');
+}
+
+function autoSave() {
+    localStorage.setItem('familyTreeData_final', JSON.stringify(familyData));
+}
+
+function loadSavedData() {
+    var saved = localStorage.getItem('familyTreeData_final');
+    if (saved) {
+        try {
+            familyData = JSON.parse(saved);
+            nodeIdCounter = 1000;
+            render();
+        } catch (e) {
+            console.error('加载失败', e);
+        }
+    }
+}
+
+// ==================== 初始化 ====================
+window.addEventListener('DOMContentLoaded', function() {
+    loadSavedData();
+    render();
+    setTimeout(function() {
+        var tip = document.getElementById('guideTip');
+        if (tip) tip.style.opacity = '0';
+    }, 4000);
+});
+</script>
+</body>
+</html>
